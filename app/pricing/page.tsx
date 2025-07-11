@@ -1,224 +1,135 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Sparkles } from "lucide-react"
+import { Check, CreditCard, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import Header from "@/components/header"
-import Footer from "@/components/footer"
+import { useToast } from "@/components/ui/use-toast"
+
+const pricingPlans = [
+  {
+    id: "basic",
+    name: "기본",
+    description: "개인 블로거를 위한 기본 크레딧 팩",
+    price: "₩10,000",
+    credits: 20,
+    features: [
+      "블로그 포스트 20개 생성",
+      "SEO 최적화 팁",
+      "마크다운 포맷 지원",
+    ],
+  },
+  {
+    id: "pro",
+    name: "프로",
+    description: "전문 콘텐츠 크리에이터를 위한 크레딧 팩",
+    price: "₩25,000",
+    credits: 60,
+    popular: true,
+    features: [
+      "블로그 포스트 60개 생성",
+      "SEO 최적화 팁",
+      "마크다운 포맷 지원",
+      "우선 지원",
+    ],
+  },
+  {
+    id: "business",
+    name: "비즈니스",
+    description: "기업과 에이전시를 위한 크레딧 팩",
+    price: "₩50,000",
+    credits: 150,
+    features: [
+      "블로그 포스트 150개 생성",
+      "SEO 최적화 팁",
+      "마크다운 포맷 지원",
+      "우선 지원",
+      "전용 고객 관리자",
+    ],
+  },
+]
 
 export default function PricingPage() {
-  const handlePurchase = (credits: number, price: number) => {
-    // 실제 결제 로직 (토스페이먼츠 연동)
-    alert(`${credits}개 크레딧 (${price.toLocaleString()}원) 결제 페이지로 이동합니다.`)
+  const { toast } = useToast()
+  const [purchasing, setPurchasing] = useState<string | null>(null)
+
+  const handlePurchase = (planId: string) => {
+    setPurchasing(planId)
+    
+    // 실제로는 결제 처리 로직이 필요합니다
+    setTimeout(() => {
+      setPurchasing(null)
+      toast({
+        title: "구매 완료",
+        description: "크레딧이 계정에 추가되었습니다.",
+      })
+    }, 2000)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      <Header />
-
-      <div className="container mx-auto px-4 py-20">
-        <div className="text-center mb-16">
-          <Badge variant="secondary" className="mb-4 bg-purple-100 text-purple-700">
-            <Sparkles className="w-4 h-4 mr-2" />
-            크레딧 기반 시스템
-          </Badge>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">간단하고 투명한 요금제</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            필요한 만큼만 사용하는 크레딧 시스템으로
-            <br />
-            부담 없이 AI 콘텐츠 생성을 시작하세요
+    <div className="bg-gray-50 min-h-screen">
+      <div className="container mx-auto px-4 py-12">
+        <div className="mb-8 flex items-center">
+          <Link href="/dashboard" className="flex items-center text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            대시보드로 돌아가기
+          </Link>
+        </div>
+        
+        <div className="text-center mb-12">
+          <h1 className="text-3xl font-bold mb-2">크레딧 구매</h1>
+          <p className="text-gray-600 max-w-lg mx-auto">
+            필요한 만큼의 크레딧을 구매하여 고품질 블로그 콘텐츠를 생성하세요.
+            각 크레딧으로 하나의 블로그 포스트를 생성할 수 있습니다.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-16">
-          {/* 스타터 */}
-          <Card className="border-2 border-gray-200 hover:border-purple-300 transition-colors">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">스타터</CardTitle>
-              <div className="text-4xl font-bold text-gray-900 my-4">10개</div>
-              <div className="text-2xl font-semibold text-purple-600">5,000원</div>
-              <CardDescription className="mt-2">개인 블로거에게 적합</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <ul className="space-y-3">
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>블로그 콘텐츠 10개 생성</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>SEO 최적화 팁 포함</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>기본 고객 지원</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>콘텐츠 편집 기능</span>
-                </li>
-              </ul>
-              <Button className="w-full bg-gray-600 hover:bg-gray-700" onClick={() => handlePurchase(10, 5000)}>
-                구매하기
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* 프로 (인기) */}
-          <Card className="border-2 border-purple-500 relative hover:border-purple-600 transition-colors">
-            <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white">
-              가장 인기
-            </Badge>
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">프로</CardTitle>
-              <div className="text-4xl font-bold text-gray-900 my-4">100개</div>
-              <div className="space-y-1">
-                <div className="text-lg text-gray-400 line-through">50,000원</div>
-                <div className="text-2xl font-semibold text-purple-600">40,000원</div>
-                <Badge variant="secondary" className="bg-red-100 text-red-700">
-                  20% 할인
-                </Badge>
-              </div>
-              <CardDescription className="mt-2">콘텐츠 마케터에게 최적</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <ul className="space-y-3">
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>블로그 콘텐츠 100개 생성</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>고급 SEO 최적화 팁</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>우선 고객 지원</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>콘텐츠 템플릿 제공</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>키워드 분석 도구</span>
-                </li>
-              </ul>
-              <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={() => handlePurchase(100, 40000)}>
-                구매하기
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* 엔터프라이즈 */}
-          <Card className="border-2 border-gray-200 hover:border-purple-300 transition-colors">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">엔터프라이즈</CardTitle>
-              <div className="text-4xl font-bold text-gray-900 my-4">500개</div>
-              <div className="space-y-1">
-                <div className="text-lg text-gray-400 line-through">250,000원</div>
-                <div className="text-2xl font-semibold text-purple-600">175,000원</div>
-                <Badge variant="secondary" className="bg-red-100 text-red-700">
-                  30% 할인
-                </Badge>
-              </div>
-              <CardDescription className="mt-2">대규모 콘텐츠 제작팀용</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <ul className="space-y-3">
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>블로그 콘텐츠 500개 생성</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>프리미엄 SEO 분석</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>전담 고객 지원</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>팀 협업 기능</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>API 액세스</span>
-                </li>
-                <li className="flex items-center">
-                  <Check className="w-5 h-5 text-green-500 mr-3" />
-                  <span>맞춤형 브랜딩</span>
-                </li>
-              </ul>
-              <Button className="w-full bg-gray-600 hover:bg-gray-700" onClick={() => handlePurchase(500, 175000)}>
-                구매하기
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {pricingPlans.map((plan) => (
+            <Card key={plan.id} className={`${plan.popular ? "border-primary shadow-lg" : ""}`}>
+              {plan.popular && (
+                <Badge className="absolute top-4 right-4 bg-primary hover:bg-primary">인기</Badge>
+              )}
+              <CardHeader>
+                <CardTitle className="text-xl">{plan.name}</CardTitle>
+                <CardDescription>{plan.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <span className="text-3xl font-bold">{plan.price}</span>
+                </div>
+                <div className="flex items-center text-primary font-medium">
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  <span>{plan.credits}개 크레딧</span>
+                </div>
+                <ul className="space-y-2">
+                  {plan.features.map((feature, i) => (
+                    <li key={i} className="flex items-start">
+                      <Check className="w-4 h-4 mr-2 text-green-500 mt-0.5" />
+                      <span className="text-sm">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className="w-full" 
+                  onClick={() => handlePurchase(plan.id)}
+                  disabled={purchasing === plan.id}
+                >
+                  {purchasing === plan.id ? "처리 중..." : "구매하기"}
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
-
-        {/* FAQ 섹션 */}
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12">자주 묻는 질문</h2>
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">크레딧은 어떻게 사용되나요?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  블로그 콘텐츠 1개를 생성할 때마다 크레딧 1개가 차감됩니다. SEO 팁은 추가 비용 없이 함께 제공됩니다.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">크레딧에 유효기간이 있나요?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  구매한 크레딧은 구매일로부터 1년간 사용 가능합니다. 유효기간 내에 사용하지 않은 크레딧은 자동으로
-                  소멸됩니다.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">환불이 가능한가요?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  구매 후 7일 이내, 크레딧을 사용하지 않은 경우에 한해 100% 환불이 가능합니다. 부분 사용한 경우 사용하지
-                  않은 크레딧에 대해서만 환불됩니다.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* CTA */}
-        <div className="text-center mt-16">
-          <h3 className="text-2xl font-bold mb-4">아직 결정하지 못하셨나요?</h3>
-          <p className="text-gray-600 mb-6">회원가입하고 무료 크레딧 10개로 먼저 체험해보세요</p>
-          <Link href="/auth/signup">
-            <Button size="lg" className="bg-purple-600 hover:bg-purple-700 mr-4">
-              무료로 시작하기
-            </Button>
-          </Link>
-          <Link href="/dashboard">
-            <Button size="lg" variant="outline">
-              대시보드 보기
-            </Button>
-          </Link>
+        
+        <div className="text-center mt-12 text-sm text-gray-500">
+          <p>모든 가격은 부가세를 포함합니다. 구매한 크레딧은 만료되지 않습니다.</p>
         </div>
       </div>
-
-      <Footer />
     </div>
   )
 }

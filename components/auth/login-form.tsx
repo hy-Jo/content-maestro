@@ -23,15 +23,22 @@ export function LoginForm() {
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log("로그인 시도:", email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
+      console.log("로그인 응답:", { data, error });
+
       if (error) throw error
-      router.push("/dashboard")
+      
+      console.log("로그인 성공, 리디렉션 중...");
       router.refresh()
+      router.push("/dashboard")
     } catch (error: any) {
+      console.error("로그인 오류:", error);
       setError(error.message || "로그인 중 오류가 발생했습니다.")
     } finally {
       setLoading(false)
@@ -43,15 +50,20 @@ export function LoginForm() {
     setError(null)
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log("Google 로그인 시도");
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}`,
         },
       })
 
+      console.log("Google 로그인 응답:", { data, error });
+      
       if (error) throw error
     } catch (error: any) {
+      console.error("Google 로그인 오류:", error);
       setError(error.message || "Google 로그인 중 오류가 발생했습니다.")
       setLoading(false)
     }

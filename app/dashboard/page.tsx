@@ -6,35 +6,62 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Sparkles, CreditCard, Target, FileText, TrendingUp, LogOut, Plus } from "lucide-react"
+import { Sparkles, CreditCard, Target, FileText, TrendingUp, LogOut, Plus, History } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/components/auth/auth-provider"
+import { getUserCredits, useCredits } from "@/lib/credits"
+import { useToast } from "@/components/ui/use-toast"
+import { supabase } from "@/lib/supabase"
 
 export default function DashboardPage() {
   const { signOut, user } = useAuth()
+  const { toast } = useToast()
   const [topic, setTopic] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedContent, setGeneratedContent] = useState("")
   const [seoTips, setSeoTips] = useState<string[]>([])
-  const [credits, setCredits] = useState(10) // 초기 무료 크레딧
+  const [credits, setCredits] = useState<number>(0)
+  const [isLoadingCredits, setIsLoadingCredits] = useState(true)
+
+  // 사용자 크레딧 로드
+  useEffect(() => {
+    async function loadCredits() {
+      if (user) {
+        setIsLoadingCredits(true)
+        const userCredits = await getUserCredits()
+        setCredits(userCredits)
+        setIsLoadingCredits(false)
+      }
+    }
+
+    loadCredits()
+  }, [user])
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
-      alert("주제를 입력해주세요.")
+      toast({
+        title: "주제를 입력해주세요",
+        variant: "destructive",
+      })
       return
     }
 
     if (credits <= 0) {
-      alert("크레딧이 부족합니다. 크레딧을 구매해주세요.")
+      toast({
+        title: "크레딧이 부족합니다",
+        description: "크레딧을 구매해주세요.",
+        variant: "destructive",
+      })
       return
     }
 
     setIsGenerating(true)
 
     // 실제 AI 생성 로직 시뮬레이션
-    setTimeout(() => {
-      const mockContent = `# ${topic}에 대한 완벽 가이드
+    setTimeout(async () => {
+      try {
+        const mockContent = `# ${topic}에 대한 완벽 가이드
 
 ${topic}는 현대 사회에서 매우 중요한 주제입니다. 이 글에서는 ${topic}에 대해 자세히 알아보고, 실용적인 팁과 인사이트를 제공하겠습니다.
 
@@ -63,19 +90,71 @@ ${topic}의 기본 개념을 정확히 파악하는 것이 중요합니다.
 
 ${topic}는 단순한 개념이 아닙니다. 지속적인 학습과 실습을 통해 마스터할 수 있는 영역입니다. 이 가이드가 여러분의 ${topic} 여정에 도움이 되기를 바랍니다.`
 
-      const mockSeoTips = [
-        `"${topic}" 키워드를 제목과 첫 번째 문단에 포함하세요`,
-        `"${topic} 가이드", "${topic} 방법", "${topic} 팁" 등의 롱테일 키워드를 활용하세요`,
-        "메타 디스크립션을 150-160자로 작성하세요",
-        "이미지에 alt 텍스트를 추가하세요",
-        "내부 링크를 2-3개 추가하여 SEO 점수를 높이세요",
-        "소제목(H2, H3)을 활용하여 구조화하세요",
-      ]
+        const mockSeoTips = [
+          `"${topic}" 키워드를 제목과 첫 번째 문단에 포함하세요`,
+          `"${topic} 가이드", "${topic} 방법", "${topic} 팁" 등의 롱테일 키워드를 활용하세요`,
+          "메타 디스크립션을 150-160자로 작성하세요",
+          "이미지에 alt 텍스트를 추가하세요",
+          "내부 링크를 2-3개 추가하여 SEO 점수를 높이세요",
+          "소제목(H2, H3)을 활용하여 구조화하세요",
+        ]
 
-      setGeneratedContent(mockContent)
-      setSeoTips(mockSeoTips)
-      setCredits((prev) => prev - 1)
-      setIsGenerating(false)
+        // 콘텐츠 생성 정보 저장
+        const { data: contentGeneration, error: contentError } = await supabase
+          .from('content_generations')
+          .insert({
+            user_id: user?.id,
+            topic: topic,
+            content: mockContent,
+            seo_tips: mockSeoTips
+          })
+          .select('id')
+          .single()
+
+        if (contentError) {
+          console.error('콘텐츠 생성 정보 저장 오류:', contentError)
+          toast({
+            title: "콘텐츠 생성 실패",
+            description: "콘텐츠 생성 정보를 저장하는 중 오류가 발생했습니다.",
+            variant: "destructive",
+          })
+          setIsGenerating(false)
+          return
+        }
+
+        // 크레딧 사용 (contentGenerationId 전달)
+        const { success, remainingCredits } = await useCredits(
+          1, 
+          `콘텐츠 생성: ${topic}`, 
+          contentGeneration?.id
+        )
+
+        if (success) {
+          setGeneratedContent(mockContent)
+          setSeoTips(mockSeoTips)
+          setCredits(remainingCredits)
+          
+          toast({
+            title: "콘텐츠가 생성되었습니다",
+            description: "크레딧 1개가 차감되었습니다.",
+          })
+        } else {
+          toast({
+            title: "콘텐츠 생성 실패",
+            description: "크레딧 차감 중 오류가 발생했습니다.",
+            variant: "destructive",
+          })
+        }
+      } catch (error) {
+        console.error('콘텐츠 생성 중 오류:', error)
+        toast({
+          title: "콘텐츠 생성 실패",
+          description: "오류가 발생했습니다.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsGenerating(false)
+      }
     }, 2000)
   }
 
@@ -95,10 +174,15 @@ ${topic}는 단순한 개념이 아닙니다. 지속적인 학습과 실습을 �
             <div className="text-sm text-gray-600 mr-2">
               {user?.email}
             </div>
-            <Badge variant="outline" className="flex items-center space-x-1">
-              <CreditCard className="w-4 h-4" />
-              <span>크레딧: {credits}개</span>
-            </Badge>
+            <Link href="/dashboard/credits">
+              <Badge variant="outline" className="flex items-center space-x-1 cursor-pointer hover:bg-gray-100">
+                <CreditCard className="w-4 h-4" />
+                <span>
+                  {isLoadingCredits ? "로딩 중..." : `크레딧: ${credits}개`}
+                </span>
+                <History className="w-3 h-3 ml-1" />
+              </Badge>
+            </Link>
             <Link href="/pricing">
               <Button variant="outline" size="sm">
                 <Plus className="w-4 h-4 mr-1" />
@@ -138,7 +222,7 @@ ${topic}는 단순한 개념이 아닙니다. 지속적인 학습과 실습을 �
 
                 <Button
                   onClick={handleGenerate}
-                  disabled={isGenerating || credits <= 0}
+                  disabled={isGenerating || credits <= 0 || isLoadingCredits}
                   className="w-full bg-purple-600 hover:bg-purple-700"
                 >
                   {isGenerating ? (
@@ -154,7 +238,7 @@ ${topic}는 단순한 개념이 아닙니다. 지속적인 학습과 실습을 �
                   )}
                 </Button>
 
-                {credits <= 0 && (
+                {credits <= 0 && !isLoadingCredits && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <p className="text-red-700 text-sm">
                       크레딧이 부족합니다.
@@ -209,10 +293,32 @@ ${topic}는 단순한 개념이 아닙니다. 지속적인 학습과 실습을 �
                       placeholder="생성된 콘텐츠가 여기에 표시됩니다..."
                     />
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(generatedContent)
+                          toast({ title: "콘텐츠가 클립보드에 복사되었습니다" })
+                        }}
+                      >
                         복사하기
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          const blob = new Blob([generatedContent], { type: 'text/markdown' })
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `${topic.replace(/\s+/g, '-')}.md`
+                          document.body.appendChild(a)
+                          a.click()
+                          document.body.removeChild(a)
+                          URL.revokeObjectURL(url)
+                          toast({ title: "콘텐츠가 다운로드되었습니다" })
+                        }}
+                      >
                         다운로드
                       </Button>
                     </div>

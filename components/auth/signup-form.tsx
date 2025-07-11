@@ -33,19 +33,30 @@ export function SignupForm() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      console.log("회원가입 시도:", email);
+      
+      // 간소화된 회원가입 요청
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+          // 이메일 확인을 위한 리디렉션 URL 설정
+          emailRedirectTo: window.location.origin
+          // 데이터 옵션 제거 - 이것이 문제를 일으킬 수 있음
+        }
       })
+
+      console.log("회원가입 응답:", { data, error });
 
       if (error) throw error
 
-      setMessage("가입이 완료되었습니다. 이메일을 확인하여 계정을 활성화하세요.")
+      // 성공 메시지 표시
+      setMessage("가입이 완료되었습니다. 이메일을 확인하여 계정을 활성화하세요.");
+      
+      // 이메일 확인 안내 페이지로 이동하거나 현재 페이지에 메시지 표시
     } catch (error: any) {
-      setError(error.message || "회원가입 중 오류가 발생했습니다.")
+      console.error("회원가입 오류:", error);
+      setError(error.message || "회원가입 중 오류가 발생했습니다.");
     } finally {
       setLoading(false)
     }
@@ -59,7 +70,7 @@ export function SignupForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}`,
         },
       })
 

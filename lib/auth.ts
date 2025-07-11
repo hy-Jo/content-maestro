@@ -13,12 +13,10 @@ export function createClient() {
           return cookieStore.get(name)?.value
         },
         set(name: string, value: string, options: any) {
-          // In Next.js, cookies().set() is synchronous
           cookieStore.set(name, value, options)
         },
         remove(name: string, options: any) {
-          // In Next.js, cookies().delete() is synchronous
-          cookieStore.delete(name, options)
+          cookieStore.delete(name)
         },
       },
     }
