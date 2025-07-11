@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge"
 import { Sparkles, CreditCard, Target, FileText, TrendingUp, LogOut, Plus } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
+import { useAuth } from "@/components/auth/auth-provider"
 
 export default function DashboardPage() {
+  const { signOut, user } = useAuth()
   const [topic, setTopic] = useState("")
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedContent, setGeneratedContent] = useState("")
@@ -77,11 +79,6 @@ ${topic}는 단순한 개념이 아닙니다. 지속적인 학습과 실습을 �
     }, 2000)
   }
 
-  const handleLogout = () => {
-    // 실제 로그아웃 로직
-    window.location.href = "/"
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -95,6 +92,9 @@ ${topic}는 단순한 개념이 아닙니다. 지속적인 학습과 실습을 �
           </Link>
 
           <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-600 mr-2">
+              {user?.email}
+            </div>
             <Badge variant="outline" className="flex items-center space-x-1">
               <CreditCard className="w-4 h-4" />
               <span>크레딧: {credits}개</span>
@@ -105,7 +105,7 @@ ${topic}는 단순한 개념이 아닙니다. 지속적인 학습과 실습을 �
                 크레딧 구매
               </Button>
             </Link>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="w-4 h-4 mr-1" />
               로그아웃
             </Button>
