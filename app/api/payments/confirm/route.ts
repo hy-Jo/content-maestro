@@ -138,75 +138,35 @@ export async function POST(request: NextRequest) {
 
     // 서버 컴포넌트에서 Supabase 클라이언트 생성
     const supabase = createClient();
-
-    // 사용자의 현재 크레딧 조회
-    let userData;
-    try {
-      const { data, error } = await supabase
-        .from('user_credits')
-        .select('credits')
-        .eq('id', userId)
-        .single();
-        
-      if (error) {
-        throw error;
-      }
-      
-      userData = data;
-    } catch (dbError) {
-      console.error('사용자 크레딧 조회 오류:', dbError);
-      return NextResponse.json(
-        { success: false, message: '사용자 크레딧 정보를 조회할 수 없습니다.' },
-        { status: 400 }
-      );
+    
+    // 이미 처리된 결제인지 확인
+    const { data: existingTransaction, error: checkError } = await supabase
+      .from('credit_transactions')
+      .select('id')
+      .eq('user_id', userId)
+      .ilike('description', `%${orderId}%`)
+      .single();
+    
+    if (!checkError && existingTransaction) {
+      console.log('이미 처리된 결제입니다:', existingTransaction.id);
+      return NextResponse.json({ 
+        success: true, 
+        message: `이미 처리된 결제입니다. 크레딧이 이미 추가되었습니다.` 
+      });
     }
 
-    const currentCredits = userData.credits || 0;
-    const newCredits = currentCredits + plan.credits;
-
-    // 크레딧 업데이트
-    try {
-      const { error } = await supabase
-        .from('user_credits')
-        .update({ 
-          credits: newCredits, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', userId);
-        
-      if (error) {
-        throw error;
-      }
-    } catch (updateError) {
-      console.error('크레딧 업데이트 오류:', updateError);
-      return NextResponse.json(
-        { success: false, message: '크레딧 업데이트에 실패했습니다.' },
-        { status: 500 }
-      );
-    }
-
-    // 거래 내역 추가
-    try {
-      const { error } = await supabase
-        .from('credit_transactions')
-        .insert({
-          user_id: userId,
-          amount: plan.credits, // 양수로 저장 (충전)
-          description: `${plan.name} 구매 (${plan.credits}개 크레딧)`
-        });
-        
-      if (error) {
-        console.error('거래 내역 추가 오류:', error);
-        // 거래 내역 추가 실패해도 크레딧은 이미 추가됨
-      }
-    } catch (transactionError) {
-      console.error('거래 내역 추가 예외:', transactionError);
-      // 거래 내역 추가 실패해도 계속 진행
-    }
+    // 주의: 이 API 엔드포인트는 더 이상 크레딧을 직접 추가하지 않습니다.
+    // 크레딧 추가는 클라이언트 사이드(success 페이지)에서만 처리합니다.
+    // 이는 중복 크레딧 추가를 방지하기 위함입니다.
 
     return NextResponse.json({ 
       success: true, 
-      message: `${plan.credits}개의 크레딧이 성공적으로 추가되었습니다.` 
+      message: `결제가 확인되었습니다. 크레딧이 곧 추가될 예정입니다.`,
+      paymentInfo: {
+        planId,
+        userId,
+        credits: plan.credits
+      }
     });
   } catch (error) {
     console.error('결제 확인 오류:', error);

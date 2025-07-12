@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,6 +19,11 @@ export default function PaymentSuccessPage() {
     success: boolean;
     message: string;
   } | null>(null)
+  
+  // 결제 처리 상태를 추적하는 ref
+  const isProcessingRef = useRef(false)
+  // 처리 완료된 주문 ID를 저장하는 ref
+  const processedOrderIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -33,6 +38,20 @@ export default function PaymentSuccessPage() {
         if (!paymentKey || !orderId) {
           throw new Error("결제 정보가 올바르지 않습니다.")
         }
+        
+        // 이미 처리 중이거나 동일한 주문을 처리했는지 확인
+        if (isProcessingRef.current) {
+          console.log('이미 결제 처리 중입니다.')
+          return
+        }
+        
+        if (processedOrderIdRef.current === orderId) {
+          console.log('이미 처리된 주문입니다:', orderId)
+          return
+        }
+        
+        // 처리 중 상태로 설정
+        isProcessingRef.current = true
 
         // 주문 ID에서 정보 추출
         const orderParts = orderId.split('_')
@@ -42,6 +61,7 @@ export default function PaymentSuccessPage() {
 
         const planId = orderParts[1]
         const userId = orderParts[2]
+        const timestamp = orderParts[3] || Date.now().toString()
         
         // 플랜 정보 확인
         const plan = paymentPlans[planId]
@@ -61,6 +81,32 @@ export default function PaymentSuccessPage() {
         }
         
         console.log('사용자 확인 완료:', user.id)
+        
+        // 이미 처리된 결제인지 확인
+        const { data: existingTransaction, error: checkError } = await supabase
+          .from('credit_transactions')
+          .select('id')
+          .eq('user_id', userId)
+          .ilike('description', `%${orderId}%`)
+          .single()
+        
+        if (!checkError && existingTransaction) {
+          console.log('이미 처리된 결제입니다:', existingTransaction.id)
+          setResult({
+            success: true,
+            message: `이미 처리된 결제입니다. 크레딧이 이미 추가되었습니다.`,
+          })
+          
+          toast({
+            title: "알림",
+            description: "이미 처리된 결제입니다. 크레딧 내역을 확인해보세요.",
+          })
+          
+          setIsLoading(false)
+          isProcessingRef.current = false
+          processedOrderIdRef.current = orderId
+          return
+        }
         
         // 사용자의 현재 크레딧 조회
         const { data: userData, error: userError } = await supabase
@@ -95,13 +141,13 @@ export default function PaymentSuccessPage() {
         
         console.log('크레딧 업데이트 완료')
         
-        // 거래 내역 추가
+        // 거래 내역 추가 - 주문 ID 포함
         const { data: transactionData, error: transactionError } = await supabase
           .from('credit_transactions')
           .insert({
             user_id: userId,
             amount: plan.credits,
-            description: `${plan.name} 구매 (${plan.credits}개 크레딧)`
+            description: `${plan.name} 구매 (${plan.credits}개 크레딧) - 주문: ${orderId}`
           })
           .select()
           
@@ -111,6 +157,20 @@ export default function PaymentSuccessPage() {
         } else {
           console.log('거래 내역 추가 완료:', transactionData)
         }
+        
+        // 로컬 스토리지에 처리된 주문 기록
+        if (typeof window !== 'undefined') {
+          try {
+            const processedOrders = JSON.parse(localStorage.getItem('processedOrders') || '[]')
+            processedOrders.push(orderId)
+            localStorage.setItem('processedOrders', JSON.stringify(processedOrders))
+          } catch (e) {
+            console.error('로컬 스토리지 저장 오류:', e)
+          }
+        }
+        
+        // 처리된 주문 ID 저장
+        processedOrderIdRef.current = orderId
         
         setResult({
           success: true,
@@ -137,10 +197,47 @@ export default function PaymentSuccessPage() {
         })
       } finally {
         setIsLoading(false)
+        isProcessingRef.current = false
       }
     }
 
-    verifyPayment()
+    // 페이지 로드 시 한 번만 실행되도록 체크
+    const checkAlreadyProcessed = () => {
+      const orderId = searchParams.get("orderId")
+      
+      if (!orderId) return false
+      
+      // 이미 처리된 주문인지 확인
+      if (processedOrderIdRef.current === orderId) {
+        console.log('이미 메모리에서 처리된 주문:', orderId)
+        return true
+      }
+      
+      // 로컬 스토리지에서 이미 처리된 주문인지 확인
+      if (typeof window !== 'undefined') {
+        try {
+          const processedOrders = JSON.parse(localStorage.getItem('processedOrders') || '[]')
+          if (processedOrders.includes(orderId)) {
+            console.log('이미 로컬에서 처리된 주문:', orderId)
+            setResult({
+              success: true,
+              message: '이미 처리된 결제입니다. 크레딧 내역을 확인해보세요.',
+            })
+            setIsLoading(false)
+            processedOrderIdRef.current = orderId
+            return true
+          }
+        } catch (e) {
+          console.error('로컬 스토리지 확인 오류:', e)
+        }
+      }
+      
+      return false
+    }
+
+    if (!checkAlreadyProcessed()) {
+      verifyPayment()
+    }
   }, [searchParams, toast])
 
   // 대시보드로 돌아가기

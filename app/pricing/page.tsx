@@ -256,8 +256,8 @@ export default function PricingPage() {
       const paymentParams: PaymentParams = {
         orderId: paymentData.orderId,
         orderName: paymentData.orderName,
-        successUrl: `${window.location.origin}/dashboard/credits/success`,
-        failUrl: `${window.location.origin}/dashboard/credits/fail`,
+        successUrl: `${window.location.origin}/dashboard/credits/success?orderId=${paymentData.orderId}`,
+        failUrl: `${window.location.origin}/dashboard/credits/fail?orderId=${paymentData.orderId}`,
       }
       
       // 이메일이 있는 경우에만 추가
