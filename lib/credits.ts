@@ -34,6 +34,49 @@ export async function getUserCredits(): Promise<number> {
 }
 
 /**
+ * 회원가입 시 초기 크레딧을 추가합니다.
+ * @param userId 사용자 ID
+ * @param amount 초기 크레딧 양
+ */
+export async function addInitialCredits(userId: string, amount: number = 10): Promise<boolean> {
+  try {
+    // 크레딧 추가
+    const { error: creditError } = await supabase
+      .from('user_credits')
+      .insert({
+        id: userId,
+        credits: amount,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+
+    if (creditError) {
+      console.error('초기 크레딧 추가 오류:', creditError)
+      return false
+    }
+
+    // 거래 내역 추가
+    const { error: transactionError } = await supabase
+      .from('credit_transactions')
+      .insert({
+        user_id: userId,
+        amount: amount, // 양수로 저장 (충전)
+        description: '회원가입 보너스 크레딧'
+      })
+
+    if (transactionError) {
+      console.error('초기 크레딧 거래 내역 추가 오류:', transactionError)
+      // 거래 내역 추가 실패해도 크레딧은 이미 추가됨
+    }
+
+    return true
+  } catch (error) {
+    console.error('초기 크레딧 설정 오류:', error)
+    return false
+  }
+}
+
+/**
  * 사용자의 크레딧을 사용합니다.
  * @param amount 사용할 크레딧 양 (양수)
  * @param description 사용 내역 설명
