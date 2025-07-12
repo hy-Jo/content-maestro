@@ -15,9 +15,13 @@ export async function generateBlogContent(topic: string): Promise<{
   seoTips: string[];
 }> {
   try {
-    // GPT-4o를 사용하여 블로그 콘텐츠 생성
+    console.log(`[OpenAI API] 블로그 콘텐츠 생성 시작 - 주제: "${topic}"`);
+    
+    // GPT-3.5-turbo를 사용하여 블로그 콘텐츠 생성
+    const startContentTime = Date.now();
+    
     const contentCompletion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
@@ -43,10 +47,17 @@ export async function generateBlogContent(topic: string): Promise<{
       temperature: 0.7,
       max_tokens: 2500,
     });
+    
+    const contentDuration = Date.now() - startContentTime;
+    console.log(`[OpenAI API] 콘텐츠 생성 완료 (${contentDuration}ms)`);
+    console.log('[OpenAI API] 콘텐츠 응답 토큰 수:', contentCompletion.usage?.total_tokens);
 
     // SEO 팁 생성
+    console.log(`[OpenAI API] SEO 팁 생성 시작 - 주제: "${topic}"`);
+    
+    const startSeoTime = Date.now();
     const seoCompletion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
@@ -62,6 +73,10 @@ export async function generateBlogContent(topic: string): Promise<{
       temperature: 0.7,
       max_tokens: 1000,
     });
+    
+    const seoDuration = Date.now() - startSeoTime;
+    console.log(`[OpenAI API] SEO 팁 생성 완료 (${seoDuration}ms)`);
+    console.log('[OpenAI API] SEO 팁 응답 토큰 수:', seoCompletion.usage?.total_tokens);
 
     // 결과 추출
     const content = contentCompletion.choices[0]?.message?.content || '';
@@ -74,12 +89,14 @@ export async function generateBlogContent(topic: string): Promise<{
       .map(line => line.replace(/^\d+\.\s*/, '').replace(/^-\s*/, '').trim())
       .filter(tip => tip.length > 10); // 너무 짧은 라인 필터링
 
+    console.log(`[OpenAI API] 처리 완료 - 콘텐츠 길이: ${content.length}자, SEO 팁 수: ${seoTips.length}개`);
+    
     return {
       content,
       seoTips: seoTips.length > 0 ? seoTips : [seoTipsText], // 분리가 안 되면 전체 텍스트를 하나의 팁으로
     };
   } catch (error) {
-    console.error('OpenAI API 오류:', error);
+    console.error('[OpenAI API] 오류 발생:', error);
     throw new Error('콘텐츠 생성 중 오류가 발생했습니다.');
   }
 } 

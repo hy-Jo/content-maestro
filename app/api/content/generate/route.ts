@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateBlogContent } from '@/lib/openai';
 import { supabase } from '@/lib/supabase';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { 
+  getCreditsAdmin, 
+  createInitialCreditsAdmin, 
+  useCreditsAdmin, 
+  saveContentGenerationAdmin 
+} from '@/lib/admin-credits';
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,138 +44,25 @@ export async function POST(req: NextRequest) {
 
     console.log('인증된 사용자:', user.id);
 
-    // 사용자 크레딧 확인 - 디버깅 로그 추가
-    const { data: creditData, error: creditError } = await supabaseAdmin
-      .from('user_credits')
-      .select('credits')
-      .eq('id', user.id)
-      .single();
-
-    console.log('크레딧 조회 결과:', { data: creditData, error: creditError });
+    // 사용자 크레딧 확인
+    let creditData = await getCreditsAdmin(user.id);
+    console.log('크레딧 조회 결과:', creditData);
 
     // 크레딧 정보가 없는 경우 - 회원가입 시 초기 크레딧이 제대로 추가되지 않았을 수 있음
-    if (creditError && creditError.code === 'PGRST116') {
+    if (!creditData) {
       console.log('사용자의 크레딧 정보가 없습니다. 초기 크레딧을 생성합니다.');
       
-      // 초기 크레딧 추가 (10개)
-      const { error: insertError } = await supabaseAdmin
-        .from('user_credits')
-        .insert({
-          id: user.id,
-          credits: 10,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+      // 초기 크레딧 생성
+      creditData = await createInitialCreditsAdmin(user.id, 10);
       
-      if (insertError) {
-        console.error('초기 크레딧 생성 오류:', insertError);
+      if (!creditData) {
         return NextResponse.json(
           { error: '크레딧 정보를 생성할 수 없습니다.' },
           { status: 500 }
         );
       }
       
-      // 거래 내역 추가
-      await supabaseAdmin
-        .from('credit_transactions')
-        .insert({
-          user_id: user.id,
-          amount: 10,
-          description: '회원가입 보너스 크레딧'
-        });
-      
-      // 새로 생성된 크레딧 정보 가져오기
-      const { data: newCreditData, error: newCreditError } = await supabaseAdmin
-        .from('user_credits')
-        .select('credits')
-        .eq('id', user.id)
-        .single();
-      
-      if (newCreditError || !newCreditData) {
-        console.error('새로 생성된 크레딧 정보 조회 오류:', newCreditError);
-        return NextResponse.json(
-          { error: '크레딧 정보를 가져올 수 없습니다.' },
-          { status: 500 }
-        );
-      }
-      
-      console.log('새로 생성된 크레딧 정보:', newCreditData);
-      
-      // 새로 생성된 크레딧 정보 사용
-      const creditToUse = newCreditData;
-      
-      // OpenAI API를 사용하여 콘텐츠 생성
-      const { content, seoTips } = await generateBlogContent(topic);
-      
-      // 콘텐츠 생성 정보 저장
-      const { data: contentGeneration, error: contentError } = await supabaseAdmin
-        .from('content_generations')
-        .insert({
-          user_id: user.id,
-          topic: topic,
-          content: content,
-          seo_tips: seoTips
-        })
-        .select('id')
-        .single();
-      
-      if (contentError || !contentGeneration) {
-        console.error('콘텐츠 생성 정보 저장 오류:', contentError);
-        return NextResponse.json(
-          { error: '콘텐츠 생성 정보를 저장할 수 없습니다.' },
-          { status: 500 }
-        );
-      }
-      
-      // 크레딧 차감
-      const newCredits = creditToUse.credits - 1;
-      
-      // 크레딧 업데이트
-      const { error: updateError } = await supabaseAdmin
-        .from('user_credits')
-        .update({ 
-          credits: newCredits, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', user.id);
-      
-      if (updateError) {
-        console.error('크레딧 차감 오류:', updateError);
-        return NextResponse.json(
-          { error: '크레딧을 차감할 수 없습니다.' },
-          { status: 500 }
-        );
-      }
-      
-      // 거래 내역 추가
-      await supabaseAdmin
-        .from('credit_transactions')
-        .insert({
-          user_id: user.id,
-          amount: -1,
-          description: `콘텐츠 생성: ${topic}`,
-          content_generations_id: contentGeneration.id
-        });
-      
-      // 결과 반환
-      return NextResponse.json({
-        content,
-        seoTips,
-        remainingCredits: newCredits,
-        contentGenerationId: contentGeneration.id
-      });
-    } else if (creditError) {
-      console.error('크레딧 조회 오류:', creditError);
-      return NextResponse.json(
-        { error: '크레딧 정보를 가져올 수 없습니다.' },
-        { status: 500 }
-      );
-    } else if (!creditData) {
-      console.error('크레딧 데이터가 null입니다.');
-      return NextResponse.json(
-        { error: '크레딧 정보가 없습니다. 크레딧을 구매해주세요.' },
-        { status: 403 }
-      );
+      console.log('새로 생성된 크레딧 정보:', creditData);
     }
 
     if (creditData.credits <= 0) {
@@ -186,19 +78,9 @@ export async function POST(req: NextRequest) {
     const { content, seoTips } = await generateBlogContent(topic);
 
     // 콘텐츠 생성 정보 저장
-    const { data: contentGeneration, error: contentError } = await supabaseAdmin
-      .from('content_generations')
-      .insert({
-        user_id: user.id,
-        topic: topic,
-        content: content,
-        seo_tips: seoTips
-      })
-      .select('id')
-      .single();
-
-    if (contentError || !contentGeneration) {
-      console.error('콘텐츠 생성 정보 저장 오류:', contentError);
+    const contentGeneration = await saveContentGenerationAdmin(user.id, topic, content, seoTips);
+    
+    if (!contentGeneration) {
       return NextResponse.json(
         { error: '콘텐츠 생성 정보를 저장할 수 없습니다.' },
         { status: 500 }
@@ -206,47 +88,27 @@ export async function POST(req: NextRequest) {
     }
 
     // 크레딧 차감
-    const newCredits = creditData.credits - 1;
+    const updatedCredits = await useCreditsAdmin(
+      user.id, 
+      1, 
+      `콘텐츠 생성: ${topic}`,
+      contentGeneration.id
+    );
     
-    // 크레딧 업데이트
-    const { error: updateError } = await supabaseAdmin
-      .from('user_credits')
-      .update({ 
-        credits: newCredits, 
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', user.id);
-
-    if (updateError) {
-      console.error('크레딧 차감 오류:', updateError);
+    if (!updatedCredits) {
       return NextResponse.json(
         { error: '크레딧을 차감할 수 없습니다.' },
         { status: 500 }
       );
     }
 
-    // 거래 내역 추가
-    const { error: transactionError } = await supabaseAdmin
-      .from('credit_transactions')
-      .insert({
-        user_id: user.id,
-        amount: -1, // 음수로 저장 (사용)
-        description: `콘텐츠 생성: ${topic}`,
-        content_generations_id: contentGeneration.id
-      });
-
-    if (transactionError) {
-      console.error('거래 내역 추가 오류:', transactionError);
-      // 거래 내역 추가 실패해도 계속 진행
-    }
-
-    console.log('콘텐츠 생성 완료, 남은 크레딧:', newCredits);
+    console.log('콘텐츠 생성 완료, 남은 크레딧:', updatedCredits.credits);
 
     // 결과 반환
     return NextResponse.json({
       content,
       seoTips,
-      remainingCredits: newCredits,
+      remainingCredits: updatedCredits.credits,
       contentGenerationId: contentGeneration.id
     });
 
