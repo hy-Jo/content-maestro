@@ -10,7 +10,7 @@ import { Sparkles, CreditCard, Target, FileText, TrendingUp, LogOut, Plus, Histo
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/components/auth/auth-provider"
-import { getUserCredits, useCredits } from "@/lib/credits"
+import { getUserCredits } from "@/lib/credits"
 import { useToast } from "@/components/ui/use-toast"
 import { supabase } from "@/lib/supabase"
 
@@ -58,104 +58,49 @@ export default function DashboardPage() {
 
     setIsGenerating(true)
 
-    // 실제 AI 생성 로직 시뮬레이션
-    setTimeout(async () => {
-      try {
-        const mockContent = `# ${topic}에 대한 완벽 가이드
-
-${topic}는 현대 사회에서 매우 중요한 주제입니다. 이 글에서는 ${topic}에 대해 자세히 알아보고, 실용적인 팁과 인사이트를 제공하겠습니다.
-
-## ${topic}란 무엇인가?
-
-${topic}는 다양한 관점에서 접근할 수 있는 복합적인 개념입니다. 기본적으로 ${topic}는...
-
-## ${topic}의 중요성
-
-1. **효율성 향상**: ${topic}를 제대로 이해하면 업무 효율성이 크게 향상됩니다.
-2. **경쟁력 강화**: 현대 비즈니스 환경에서 ${topic}는 필수적인 요소입니다.
-3. **미래 대비**: ${topic}에 대한 이해는 미래를 준비하는 데 도움이 됩니다.
-
-## 실용적인 ${topic} 활용법
-
-### 1단계: 기초 이해하기
-${topic}의 기본 개념을 정확히 파악하는 것이 중요합니다.
-
-### 2단계: 실습하기
-이론만으로는 부족합니다. 직접 ${topic}를 실습해보세요.
-
-### 3단계: 응용하기
-기본기를 익혔다면 이제 실제 상황에 응용해보세요.
-
-## 결론
-
-${topic}는 단순한 개념이 아닙니다. 지속적인 학습과 실습을 통해 마스터할 수 있는 영역입니다. 이 가이드가 여러분의 ${topic} 여정에 도움이 되기를 바랍니다.`
-
-        const mockSeoTips = [
-          `"${topic}" 키워드를 제목과 첫 번째 문단에 포함하세요`,
-          `"${topic} 가이드", "${topic} 방법", "${topic} 팁" 등의 롱테일 키워드를 활용하세요`,
-          "메타 디스크립션을 150-160자로 작성하세요",
-          "이미지에 alt 텍스트를 추가하세요",
-          "내부 링크를 2-3개 추가하여 SEO 점수를 높이세요",
-          "소제목(H2, H3)을 활용하여 구조화하세요",
-        ]
-
-        // 콘텐츠 생성 정보 저장
-        const { data: contentGeneration, error: contentError } = await supabase
-          .from('content_generations')
-          .insert({
-            user_id: user?.id,
-            topic: topic,
-            content: mockContent,
-            seo_tips: mockSeoTips
-          })
-          .select('id')
-          .single()
-
-        if (contentError) {
-          console.error('콘텐츠 생성 정보 저장 오류:', contentError)
-          toast({
-            title: "콘텐츠 생성 실패",
-            description: "콘텐츠 생성 정보를 저장하는 중 오류가 발생했습니다.",
-            variant: "destructive",
-          })
-          setIsGenerating(false)
-          return
-        }
-
-        // 크레딧 사용 (contentGenerationId 전달)
-        const { success, remainingCredits } = await useCredits(
-          1, 
-          `콘텐츠 생성: ${topic}`, 
-          contentGeneration?.id
-        )
-
-        if (success) {
-          setGeneratedContent(mockContent)
-          setSeoTips(mockSeoTips)
-          setCredits(remainingCredits)
-          
-          toast({
-            title: "콘텐츠가 생성되었습니다",
-            description: "크레딧 1개가 차감되었습니다.",
-          })
-        } else {
-          toast({
-            title: "콘텐츠 생성 실패",
-            description: "크레딧 차감 중 오류가 발생했습니다.",
-            variant: "destructive",
-          })
-        }
-      } catch (error) {
-        console.error('콘텐츠 생성 중 오류:', error)
-        toast({
-          title: "콘텐츠 생성 실패",
-          description: "오류가 발생했습니다.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsGenerating(false)
+    try {
+      // 현재 세션에서 액세스 토큰 가져오기
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('인증 세션이 없습니다. 다시 로그인해주세요.');
       }
-    }, 2000)
+
+      // API 엔드포인트 호출
+      const response = await fetch('/api/content/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ topic }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '콘텐츠 생성에 실패했습니다.');
+      }
+
+      // 응답 데이터 처리
+      setGeneratedContent(data.content);
+      setSeoTips(data.seoTips);
+      setCredits(data.remainingCredits);
+      
+      toast({
+        title: "콘텐츠가 생성되었습니다",
+        description: "크레딧 1개가 차감되었습니다.",
+      });
+    } catch (error) {
+      console.error('콘텐츠 생성 중 오류:', error)
+      toast({
+        title: "콘텐츠 생성 실패",
+        description: error instanceof Error ? error.message : "오류가 발생했습니다.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   return (

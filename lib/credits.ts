@@ -20,17 +20,31 @@ export type CreditTransaction = {
  * 사용자의 현재 크레딧을 조회합니다.
  */
 export async function getUserCredits(): Promise<number> {
-  const { data, error } = await supabase
-    .from('user_credits')
-    .select('credits')
-    .single()
+  try {
+    // 현재 사용자 ID 가져오기
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('인증된 사용자를 찾을 수 없습니다.');
+      return 0;
+    }
 
-  if (error) {
-    console.error('크레딧 조회 오류:', error)
-    return 0
+    // 사용자 크레딧 조회
+    const { data, error } = await supabase
+      .from('user_credits')
+      .select('credits')
+      .eq('id', user.id)
+      .single();
+
+    if (error) {
+      console.error('크레딧 조회 오류:', error);
+      return 0;
+    }
+
+    return data?.credits || 0;
+  } catch (error) {
+    console.error('크레딧 조회 중 오류 발생:', error);
+    return 0;
   }
-
-  return data?.credits || 0
 }
 
 /**
