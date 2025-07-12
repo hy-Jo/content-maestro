@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Check } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
+import { supabase } from "@/lib/supabase"
+import { paymentPlans } from "@/lib/toss-payments"
 
 export default function PaymentSuccessPage() {
   const router = useRouter()
@@ -21,42 +23,104 @@ export default function PaymentSuccessPage() {
   useEffect(() => {
     const verifyPayment = async () => {
       try {
+        // URL 파라미터 가져오기
         const paymentKey = searchParams.get("paymentKey")
         const orderId = searchParams.get("orderId")
         const amount = searchParams.get("amount")
 
-        if (!paymentKey || !orderId || !amount) {
+        console.log('결제 검증 시작:', { paymentKey, orderId, amount })
+
+        if (!paymentKey || !orderId) {
           throw new Error("결제 정보가 올바르지 않습니다.")
         }
 
-        // API 엔드포인트를 통해 결제 검증 요청
-        const response = await fetch('/api/payments/confirm', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            paymentKey,
-            orderId,
-            amount: parseInt(amount, 10),
-          }),
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.message || '결제 검증에 실패했습니다.')
+        // 주문 ID에서 정보 추출
+        const orderParts = orderId.split('_')
+        if (orderParts.length < 3) {
+          throw new Error("유효하지 않은 주문 ID입니다.")
         }
 
+        const planId = orderParts[1]
+        const userId = orderParts[2]
+        
+        // 플랜 정보 확인
+        const plan = paymentPlans[planId]
+        if (!plan) {
+          throw new Error("유효하지 않은 플랜입니다.")
+        }
+        
+        // 현재 사용자 확인
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (!user) {
+          throw new Error("사용자 정보를 확인할 수 없습니다.")
+        }
+        
+        if (user.id !== userId) {
+          throw new Error("주문 정보가 현재 사용자와 일치하지 않습니다.")
+        }
+        
+        console.log('사용자 확인 완료:', user.id)
+        
+        // 사용자의 현재 크레딧 조회
+        const { data: userData, error: userError } = await supabase
+          .from('user_credits')
+          .select('credits')
+          .eq('id', userId)
+          .single()
+          
+        if (userError) {
+          console.error('사용자 크레딧 조회 오류:', userError)
+          throw new Error("사용자 크레딧 정보를 조회할 수 없습니다.")
+        }
+        
+        const currentCredits = userData?.credits || 0
+        const newCredits = currentCredits + plan.credits
+        
+        console.log('크레딧 업데이트 예정:', { 현재: currentCredits, 추가: plan.credits, 새로운값: newCredits })
+        
+        // 크레딧 업데이트
+        const { error: updateError } = await supabase
+          .from('user_credits')
+          .update({ 
+            credits: newCredits, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', userId)
+          
+        if (updateError) {
+          console.error('크레딧 업데이트 오류:', updateError)
+          throw new Error("크레딧 업데이트에 실패했습니다.")
+        }
+        
+        console.log('크레딧 업데이트 완료')
+        
+        // 거래 내역 추가
+        const { data: transactionData, error: transactionError } = await supabase
+          .from('credit_transactions')
+          .insert({
+            user_id: userId,
+            amount: plan.credits,
+            description: `${plan.name} 구매 (${plan.credits}개 크레딧)`
+          })
+          .select()
+          
+        if (transactionError) {
+          console.error('거래 내역 추가 오류:', transactionError)
+          // 거래 내역 추가 실패해도 크레딧은 이미 추가됨
+        } else {
+          console.log('거래 내역 추가 완료:', transactionData)
+        }
+        
         setResult({
           success: true,
-          message: data.message || '결제가 성공적으로 처리되었습니다.',
+          message: `${plan.credits}개의 크레딧이 성공적으로 추가되었습니다.`,
         })
 
         // 성공 메시지 표시
         toast({
           title: "결제 성공",
-          description: data.message || '크레딧이 계정에 추가되었습니다.',
+          description: `${plan.credits}개의 크레딧이 계정에 추가되었습니다.`,
         })
       } catch (error) {
         console.error("결제 검증 오류:", error)
@@ -78,6 +142,11 @@ export default function PaymentSuccessPage() {
 
     verifyPayment()
   }, [searchParams, toast])
+
+  // 대시보드로 돌아가기
+  const goToDashboard = () => {
+    router.push("/dashboard/credits")
+  }
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-md">
@@ -112,7 +181,7 @@ export default function PaymentSuccessPage() {
           </p>
         </CardContent>
         <CardFooter className="flex justify-center">
-          <Button onClick={() => router.push("/dashboard/credits")}>
+          <Button onClick={goToDashboard}>
             크레딧 내역 확인
           </Button>
         </CardFooter>

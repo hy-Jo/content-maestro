@@ -140,7 +140,8 @@ export default function PricingPage() {
       console.log('토스페이먼츠 위젯 초기화 시작')
       
       // 토스페이먼츠 초기화
-      const clientKey = 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm'
+      const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY || 'test_ck_D4yKeq5bgrpKRd0JYbLVGX0lzW6Y'
+      console.log('토스페이먼츠 클라이언트 키 사용:', clientKey.substring(0, 8) + '...')
       const tossPayments = window.TossPayments(clientKey)
       
       // 비회원 결제 위젯 초기화

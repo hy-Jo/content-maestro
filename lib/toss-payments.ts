@@ -52,13 +52,20 @@ export function createPaymentData(
 
   const orderId = `order_${planId}_${userId}_${Date.now()}`;
   
+  // 브라우저 환경에서만 window.location을 사용
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  
+  // 환경 변수 또는 기본 URL 사용
+  const successUrl = process.env.NEXT_PUBLIC_TOSS_SUCCESS_URL || `${baseUrl}/dashboard/credits/success`;
+  const failUrl = process.env.NEXT_PUBLIC_TOSS_FAIL_URL || `${baseUrl}/dashboard/credits/fail`;
+  
   return {
     orderId,
     amount: plan.price,
     orderName: `${plan.name} (${plan.credits}개 크레딧)`,
     customerName: userName,
     customerEmail: userEmail,
-    successUrl: `${process.env.NEXT_PUBLIC_TOSS_SUCCESS_URL}?orderId=${orderId}`,
-    failUrl: `${process.env.NEXT_PUBLIC_TOSS_FAIL_URL}?orderId=${orderId}`,
+    successUrl: `${successUrl}?orderId=${orderId}`,
+    failUrl: `${failUrl}?orderId=${orderId}`,
   };
 } 
