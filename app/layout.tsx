@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/components/auth/auth-provider'
 import { ThemeProvider } from '@/components/theme-provider'
+import Script from 'next/script'
 
 export const metadata: Metadata = {
   title: 'Content Maestro',
@@ -16,6 +17,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" suppressHydrationWarning>
+      <head>
+        <Script
+          src="https://js.tosspayments.com/v2/standard"
+          strategy="beforeInteractive"
+        />
+      </head>
       <body>
         <ThemeProvider
           attribute="class"

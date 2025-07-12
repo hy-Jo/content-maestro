@@ -4,9 +4,11 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { CreditCard, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { CreditCard, ArrowUpRight, ArrowDownRight, Plus } from "lucide-react"
 import { getCreditTransactions, getUserCredits, type CreditTransaction } from "@/lib/credits"
 import { format } from "date-fns"
+import Link from "next/link"
 
 export default function CreditsPage() {
   const [transactions, setTransactions] = useState<CreditTransaction[]>([])
@@ -31,7 +33,15 @@ export default function CreditsPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">크레딧 관리</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">크레딧 관리</h1>
+        <Link href="/pricing">
+          <Button className="flex items-center gap-1">
+            <Plus className="h-4 w-4" />
+            크레딧 구매
+          </Button>
+        </Link>
+      </div>
       
       <div className="grid md:grid-cols-4 gap-6 mb-6">
         <Card>

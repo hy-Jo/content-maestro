@@ -26,20 +26,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('초기 크레딧 거래 내역 추가 시도:', userId)
       
       // 이미 거래 내역이 있는지 확인
-      const { data: existingTransaction, error: checkError } = await supabase
+      const { data: existingTransactions, error: checkError } = await supabase
         .from('credit_transactions')
         .select('id')
         .eq('user_id', userId)
         .eq('description', '회원가입 보너스 크레딧')
-        .maybeSingle()
       
       if (checkError) {
         console.error('거래 내역 확인 오류:', JSON.stringify(checkError, null, 2))
         return
       }
       
-      if (existingTransaction) {
-        console.log('이미 초기 크레딧 거래 내역이 있음:', existingTransaction.id)
+      if (existingTransactions && existingTransactions.length > 0) {
+        console.log('이미 초기 크레딧 거래 내역이 있음:', existingTransactions[0].id)
         // 이미 초기 크레딧 거래 내역이 있으면 중복 추가 방지
         return
       }
