@@ -44,7 +44,7 @@ export async function middleware(request: NextRequest) {
     // 사용자 세션 새로고침 (로깅 최소화)
     await supabase.auth.getUser();
   } catch (error) {
-    console.error("미들웨어 인증 오류:", error);
+    // 오류 로깅 제거
   }
 
   return response
