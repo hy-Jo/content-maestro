@@ -1,23 +1,34 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Sparkles, Target, Zap, TrendingUp } from "lucide-react"
 import Link from "next/link"
-import Header from "@/components/header"
-import Footer from "@/components/footer"
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      <Header />
+      <header className="container mx-auto px-4 py-6">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-purple-600 rounded-lg"></div>
+            <span className="font-bold text-xl">콘텐츠 메이스트로</span>
+          </div>
+          <div className="flex space-x-4">
+            <Link href="/auth/login">
+              <Button variant="ghost">로그인</Button>
+            </Link>
+            <Link href="/auth/signup">
+              <Button>회원가입</Button>
+            </Link>
+          </div>
+        </div>
+      </header>
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20 text-center">
         <div className="max-w-4xl mx-auto">
-          <Badge variant="secondary" className="mb-4 bg-purple-100 text-purple-700">
-            <Sparkles className="w-4 h-4 mr-2" />
+          <div className="inline-block mb-4 bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
             AI 기반 콘텐츠 생성
-          </Badge>
+          </div>
           <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-6">
             콘텐츠 메이스트로
           </h1>
@@ -37,6 +48,11 @@ export default function LandingPage() {
                 요금제 보기
               </Button>
             </Link>
+            <Link href="/photo-app">
+              <Button size="lg" variant="outline" className="px-8 py-3 bg-gradient-to-r from-pink-500 to-orange-500 text-white border-0 hover:from-pink-600 hover:to-orange-600">
+                📸 포토 앱 체험
+              </Button>
+            </Link>
           </div>
           <p className="text-sm text-gray-500 mt-4">회원가입 시 무료 크레딧 10개 제공 ✨</p>
         </div>
@@ -53,7 +69,7 @@ export default function LandingPage() {
           <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="text-center">
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-6 h-6 text-purple-600" />
+                ⚡
               </div>
               <CardTitle>빠른 콘텐츠 생성</CardTitle>
             </CardHeader>
@@ -67,7 +83,7 @@ export default function LandingPage() {
           <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="text-center">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Target className="w-6 h-6 text-blue-600" />
+                🎯
               </div>
               <CardTitle>SEO 최적화</CardTitle>
             </CardHeader>
@@ -79,7 +95,7 @@ export default function LandingPage() {
           <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="text-center">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-6 h-6 text-green-600" />
+                📈
               </div>
               <CardTitle>합리적인 가격</CardTitle>
             </CardHeader>
@@ -107,11 +123,11 @@ export default function LandingPage() {
             <CardContent>
               <ul className="space-y-2">
                 <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <span className="text-green-500 mr-2">✓</span>
                   <span className="text-sm">블로그 콘텐츠 10개</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <span className="text-green-500 mr-2">✓</span>
                   <span className="text-sm">SEO 팁 포함</span>
                 </li>
               </ul>
@@ -119,29 +135,31 @@ export default function LandingPage() {
           </Card>
 
           <Card className="border-2 border-purple-500 relative">
-            <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-500">인기</Badge>
+            <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+              인기
+            </div>
             <CardHeader className="text-center">
               <CardTitle className="text-lg">프로</CardTitle>
               <div className="text-3xl font-bold text-gray-900">100개</div>
               <p className="text-gray-600">
                 <span className="line-through text-gray-400">50,000원</span> 40,000원
               </p>
-              <Badge variant="secondary" className="bg-red-100 text-red-700">
+              <div className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs inline-block">
                 20% 할인
-              </Badge>
+              </div>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
                 <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <span className="text-green-500 mr-2">✓</span>
                   <span className="text-sm">블로그 콘텐츠 100개</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <span className="text-green-500 mr-2">✓</span>
                   <span className="text-sm">SEO 팁 포함</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <span className="text-green-500 mr-2">✓</span>
                   <span className="text-sm">우선 지원</span>
                 </li>
               </ul>
@@ -155,22 +173,22 @@ export default function LandingPage() {
               <p className="text-gray-600">
                 <span className="line-through text-gray-400">250,000원</span> 175,000원
               </p>
-              <Badge variant="secondary" className="bg-red-100 text-red-700">
+              <div className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs inline-block">
                 30% 할인
-              </Badge>
+              </div>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
                 <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <span className="text-green-500 mr-2">✓</span>
                   <span className="text-sm">블로그 콘텐츠 500개</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <span className="text-green-500 mr-2">✓</span>
                   <span className="text-sm">SEO 팁 포함</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="w-4 h-4 text-green-500 mr-2" />
+                  <span className="text-green-500 mr-2">✓</span>
                   <span className="text-sm">전담 지원</span>
                 </li>
               </ul>
@@ -200,7 +218,17 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <Footer />
+      <footer className="container mx-auto px-4 py-8 border-t mt-20">
+        <div className="flex flex-col md:flex-row justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-purple-600 rounded-lg"></div>
+            <span className="font-medium">콘텐츠 메이스트로</span>
+          </div>
+          <div className="text-sm text-gray-500 mt-4 md:mt-0">
+            © 2025 콘텐츠 메이스트로. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
